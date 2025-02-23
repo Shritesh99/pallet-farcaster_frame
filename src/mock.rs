@@ -1,4 +1,4 @@
-use crate as pallet_template;
+use crate as pallet_farcaster;
 use frame_support::derive_impl;
 use sp_runtime::BuildStorage;
 
@@ -18,16 +18,16 @@ mod runtime {
         RuntimeHoldReason,
         RuntimeSlashReason,
         RuntimeLockId,
-        RuntimeTask,
-        RuntimeViewFunction
+        RuntimeTask
     )]
+
     pub struct Test;
 
     #[runtime::pallet_index(0)]
     pub type System = frame_system::Pallet<Test>;
 
     #[runtime::pallet_index(1)]
-    pub type Template = pallet_template::Pallet<Test>;
+    pub type Template = pallet_farcaster::Pallet<Test>;
 }
 
 #[derive_impl(frame_system::config_preludes::TestDefaultConfig)]
@@ -35,9 +35,8 @@ impl frame_system::Config for Test {
     type Block = Block;
 }
 
-impl pallet_template::Config for Test {
+impl pallet_farcaster::Config for Test {
     type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.

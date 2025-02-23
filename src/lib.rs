@@ -1,6 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
 
+#[cfg(test)]
+mod mock;
+
+#[cfg(test)]
+mod tests;
+
 mod message;
 mod util;
 
@@ -128,11 +134,11 @@ pub mod pallet {
             ensure!(valid, Error::<T>::InvalidSignature);
 
             // // Check timestamp within 10 minutes
-            let now = 10; // Replace with actual current time
-            ensure!(
-                data.timestamp <= now + 600 && data.timestamp >= now - 600,
-                Error::<T>::InvalidTimestamp
-            );
+            // let now = 10; // Replace with actual current time
+            // ensure!(
+            //     data.timestamp <= now + 600 && data.timestamp >= now - 600,
+            //     Error::<T>::InvalidTimestamp
+            // );
 
             Ok(())
         }
