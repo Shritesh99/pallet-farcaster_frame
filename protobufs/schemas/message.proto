@@ -1,6 +1,7 @@
 syntax = "proto3";
 import "username_proof.proto";
 
+package message;
 /**
   * A Message is a delta operation on the Farcaster network. The message protobuf is an envelope
   * that wraps a MessageData object and contains a hash and signature which can verify its authenticity.

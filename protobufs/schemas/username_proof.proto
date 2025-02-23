@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package message;
+
 enum UserNameType {
   USERNAME_TYPE_NONE = 0;
   USERNAME_TYPE_FNAME = 1;

@@ -1,70 +1,190 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-
-mod message; // Generated protobuf code
-mod username_proof; // Generated protobuf code
-
-pub use ed25519_dalek::{SecretKey, Signer, SigningKey};
-use hex::FromHex;
-use reqwest::Client;
-
-use message::{CastAddBody, FarcasterNetwork, MessageData};
-pub use protobuf::Message;
-
 pub use pallet::*;
 
-
-#[cfg(test)]
-mod mock;
-
-#[cfg(test)]
-mod tests;
-
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
-pub mod weights;
-pub use weights::*;
+mod message;
+mod util;
 
 #[frame_support::pallet]
 pub mod pallet {
-	// Import various useful types required by all FRAME pallets.
-	use super::*;
-	use frame_support::pallet_prelude::*;
-	use frame_system::pallet_prelude::*;
+    use crate::message::*;
+    use crate::util::*;
+    use frame_support::{pallet_prelude::*, Blake2_128Concat};
+    use frame_system::pallet_prelude::*;
+    use sp_core::{ed25519, keccak_256, H160};
+    use sp_std::vec::Vec;
 
-	// The `Pallet` struct serves as a placeholder to implement traits, methods and dispatchables
-	// (`Call`s) in this pallet.
-	#[pallet::pallet]
-	pub struct Pallet<T>(_);
+    #[pallet::pallet]
+    pub struct Pallet<T>(_);
 
-	#[pallet::config]
-	pub trait Config: frame_system::Config {
-		/// The overarching runtime event type.
-		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-		/// A type representing the weights required by the dispatchables of this pallet.
-		type WeightInfo: WeightInfo;
-	}
+    #[pallet::config]
+    pub trait Config: frame_system::Config {
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+    }
 
-	#[pallet::storage]
-	pub type Something<T> = StorageValue<_, u32>;
+    // Registries (simplified)
+    #[pallet::storage]
+    pub type IdRegistry<T> = StorageMap<_, Blake2_128Concat, u64, H160>;
 
-	#[pallet::event]
-	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	pub enum Event<T: Config> {
-		FarcasterVerification{ who: T::AccountId }
-	}
+    #[pallet::storage]
+    pub type KeyRegistry<T> = StorageMap<_, Blake2_128Concat, (u64, RuntimeBoundedVec), bool>;
 
-	#[pallet::error]
-	pub enum Error<T> {
-		VerificationFailed
-	}
+    #[pallet::storage]
+    pub type StorageRegistry<T> = StorageMap<_, Blake2_128Concat, u64, u32>;
 
-	#[pallet::call]
-	impl<T: Config> Pallet<T> {
-		#[pallet::weight(Weight::default())]
-		#[pallet::call_index(1)]
-		pub fn verify(origin: OriginFor<T>, _message: Message){
-			
-			Ok(())
-		}
-	}
+    // CRDT Storages
+    #[pallet::storage]
+    pub type Casts<T> =
+        StorageMap<_, Blake2_128Concat, (u64, RuntimeBoundedVec), RuntimeBoundedVec>;
+
+    #[pallet::event]
+    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    pub enum Event<T: Config> {
+        MessageValidated { fid: u64, message_type: MessageType },
+        MessageRejected { fid: u64, reason: Error<T> },
+    }
+
+    #[pallet::error]
+    #[derive(Clone, PartialEq)]
+    pub enum Error<T> {
+        InvalidProtobuf,
+        InvalidHash,
+        InvalidSignature,
+        SignerNotAuthorized,
+        FidNotRegistered,
+        InsufficientStorage,
+        InvalidTimestamp,
+        InvalidMessageType,
+        InvalidMessageData,
+        InvalidHashScheme,
+        InvalidSignatureScheme,
+    }
+
+    #[pallet::call]
+    impl<T: Config> Pallet<T> {
+        #[pallet::call_index(0)]
+        #[pallet::weight(Weight::default())]
+        pub fn submit_message(origin: OriginFor<T>, raw: Vec<u8>) -> DispatchResult {
+            let sender = ensure_signed(origin)?;
+
+            let msg = Message::decode(&mut &*raw).map_err(|_| Error::<T>::InvalidProtobuf)?;
+            let data = msg.data.as_ref().ok_or(Error::<T>::InvalidMessageData)?;
+
+            // Validate message
+            Self::validate_message(&msg, data)?;
+
+            // Process message type
+            // match data {
+            //     MessageType::MESSAGE_TYPE_CAST_ADD => Self::process_cast_add(data.fid, msg),
+            //     // Handle other types...
+            //     _ => Err(Error::<T>::InvalidMessageType)?,
+            // };
+
+            Self::deposit_event(Event::MessageValidated {
+                fid: data.fid,
+                message_type: MessageType::try_from(data.r#type).unwrap_or(MessageType::None),
+            });
+            Ok(())
+        }
+    }
+
+    impl<T: Config> Pallet<T> {
+        fn validate_message(msg: &Message, data: &MessageData) -> Result<(), Error<T>> {
+            // Check FID registration
+            // let custody = IdRegistry::<T>::try_get(data.fid)
+            //     .ok()
+            //     .ok_or(Error::<T>::FidNotRegistered)?;
+
+            // // Validate signer key
+            // let valid_signer = KeyRegistry::<T>::try_get((data.fid, msg.signer.clone()))
+            //     .ok()
+            //     .ok_or(Error::<T>::SignerNotAuthorized)?;
+            // ensure!(valid_signer, Error::<T>::SignerNotAuthorized);
+
+            // // Check storage
+            // let units = StorageRegistry::<T>::try_get(data.fid).unwrap_or(0);
+            // ensure!(
+            //     units >= Self::required_units(data),
+            //     Error::<T>::InsufficientStorage
+            // );
+
+            // // Verify hash
+            // let computed = Self::compute_hash(&msg.data_bytes, msg.hash_scheme)?;
+            // ensure!(computed == msg.hash, Error::<T>::InvalidHash);
+
+            // // Verify signature
+            // let valid = Self::verify_signature(
+            //     msg.signature_scheme,
+            //     &msg.signer,
+            //     &msg.hash,
+            //     &msg.signature,
+            //     &custody,
+            // )?;
+            // ensure!(valid, Error::<T>::InvalidSignature);
+
+            // // Check timestamp within 10 minutes
+            // let now = 10; // Replace with actual current time
+            // ensure!(
+            //     data.timestamp <= now + 600 && data.timestamp >= now - 600,
+            //     Error::<T>::InvalidTimestamp
+            // );
+
+            Ok(())
+        }
+
+        // fn compute_hash(data: &[u8], scheme: HashScheme) -> Result<Vec<u8>, Error<T>> {
+        //     match scheme {
+        //         HashScheme::HASH_SCHEME_BLAKE3 => Ok(blake3::hash(data).as_bytes()[..20].to_vec()),
+        //         _ => Err(Error::<T>::InvalidHashScheme),
+        //     }
+        // }
+
+        fn verify_signature(
+            scheme: SignatureScheme,
+            signer: &[u8],
+            hash: &[u8],
+            sig: &[u8],
+            custody: &H160,
+        ) -> Result<bool, Error<T>> {
+            // match scheme {
+            //     SignatureScheme::SIGNATURE_SCHEME_ED25519 => {
+            //         let pub_key = ed25519::Public::from_slice(signer)
+            //             .map_err(|_| Error::<T>::InvalidSignature)?;
+            //         let signature = ed25519::Signature::from_slice(sig)
+            //             .map_err(|_| Error::<T>::InvalidSignature)?;
+            //         Ok(sp_io::crypto::ed25519_verify(&signature, hash, &pub_key))
+            //     }
+            //     SignatureScheme::SIGNATURE_SCHEME_EIP712 => {
+            //         let recovered = sp_io::crypto::secp256k1_ecdsa_recover(sig, hash)
+            //             .map_err(|_| Error::<T>::InvalidSignature)?;
+            //         let addr = H160::from_slice(&keccak_256(&recovered)[12..32]);
+            //         Ok(&addr == custody)
+            //     }
+            //     _ => Err(Error::<T>::InvalidSignatureScheme),
+            // }
+            Ok((true))
+        }
+
+        fn process_cast_add(fid: u64, msg: Message) -> DispatchResult {
+            // let data = msg.data.as_ref().ok_or(Error::<T>::InvalidMessageData)?;
+            // let body = if let Some(MessageData_oneof_body::cast_add_body(b)) = &data.body {
+            //     b
+            // } else {
+            //     return Err(Error::<T>::InvalidMessageType.into());
+            // };
+
+            // // CRDT resolution: Check existing casts and apply last-write-wins
+            // let key = (fid, msg.hash.clone());
+            // let existing = Casts::<T>::get(&key);
+            // if existing.map_or(true, |e| data.timestamp > e.timestamp) {
+            //     Casts::<T>::insert(&key, body.clone());
+            // }
+
+            Ok(())
+        }
+
+        fn required_units(data: &MessageData) -> u32 {
+            // Determine storage units required based on message type
+            1 // Simplified for example
+        }
+    }
 }
