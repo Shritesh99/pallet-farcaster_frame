@@ -8,10 +8,12 @@ mod mock;
 mod tests;
 
 mod message;
+mod pallet_farcaster;
 
 #[frame_support::pallet]
 pub mod pallet {
     use crate::message::*;
+    use crate::pallet_farcaster::PalletFarcasterInterface;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
     use sp_core::{ed25519, keccak_256, ByteArray, H160};
@@ -49,20 +51,45 @@ pub mod pallet {
         pub fn submit_message(origin: OriginFor<T>, raw: Vec<u8>) -> DispatchResult {
             let sender = ensure_signed(origin)?;
 
-            let msg = Message::decode(&mut &*raw).map_err(|_| Error::<T>::InvalidProtobuf)?;
-            // Validate message
-            Self::validate_message(
-                &msg,
-                msg.clone().data_bytes.unwrap(),
-                account_to_eth_address::<T>(&sender),
-            )?;
+            let msg =
+                <Self as PalletFarcasterInterface<T::AccountId>>::submit_message_from_runtime(
+                    raw, &sender,
+                )?;
 
             Self::deposit_event(Event::MessageValidated { message: msg });
             Ok(())
         }
     }
 
+    impl<T: Config> PalletFarcasterInterface<T::AccountId> for Pallet<T> {
+        type Error = Error<T>;
+        type Message = Message;
+
+        fn submit_message_from_runtime(
+            raw: Vec<u8>,
+            sender: &T::AccountId,
+        ) -> Result<Message, Self::Error> {
+            Self::process_message(raw, sender)
+        }
+    }
+
     impl<T: Config> Pallet<T> {
+        fn process_message(raw: Vec<u8>, sender: &T::AccountId) -> Result<Message, Error<T>> {
+            // Decode the message.
+            let msg = Message::decode(&mut &*raw).map_err(|_| Error::<T>::InvalidProtobuf)?;
+
+            // Ensure that required data is available.
+            let data_bytes = msg.data_bytes.clone().ok_or(Error::<T>::InvalidProtobuf)?;
+
+            // Convert sender's AccountId into an Ethereum-style address.
+            let custody = account_to_eth_address::<T>(sender);
+
+            // Validate the message using your existing logic.
+            Self::validate_message(&msg, data_bytes, custody)?;
+
+            Ok(msg)
+        }
+
         fn validate_message(
             msg: &Message,
             data_bytes: Vec<u8>,
