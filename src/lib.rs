@@ -8,12 +8,11 @@ mod mock;
 mod tests;
 
 mod message;
-mod util;
 
 #[frame_support::pallet]
 pub mod pallet {
     use crate::message::*;
-    use frame_support::{pallet_prelude::*, Blake2_128Concat};
+    use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
     use sp_core::{ed25519, keccak_256, ByteArray, H160};
     use sp_std::vec::Vec;
@@ -26,25 +25,10 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
     }
 
-    // Registries (simplified)
-    #[pallet::storage]
-    pub type IdRegistry<T> = StorageMap<_, Blake2_128Concat, u64, H160>;
-
-    // #[pallet::storage]
-    // pub type KeyRegistry<T> = StorageMap<_, Blake2_128Concat, (u64, RuntimeBoundedVec), bool>;
-
-    // #[pallet::storage]
-    // pub type StorageRegistry<T> = StorageMap<_, Blake2_128Concat, u64, u32>;
-
-    // CRDT Storages
-    // #[pallet::storage]
-    // pub type Casts<T> =
-    //     StorageMap<_, Blake2_128Concat, (u64, RuntimeBoundedVec), RuntimeBoundedVec>;
-
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        MessageValidated { fid: u64, message_type: MessageType },
+        MessageValidated { message: Message },
         MessageRejected { fid: u64, reason: Error<T> },
     }
 
@@ -73,21 +57,14 @@ pub mod pallet {
 
             let msg = Message::decode(&mut &*raw).map_err(|_| Error::<T>::InvalidProtobuf)?;
             let data = msg.data.as_ref().ok_or(Error::<T>::InvalidMessageData)?;
-
             // Validate message
-            Self::validate_message(&msg, data, msg.clone().data_bytes.unwrap())?;
+            Self::validate_message(
+                &msg,
+                msg.clone().data_bytes.unwrap(),
+                account_to_eth_address::<T>(&sender),
+            )?;
 
-            // Process message type
-            // match data {
-            //     MessageType::MESSAGE_TYPE_CAST_ADD => Self::process_cast_add(data.fid, msg),
-            //     // Handle other types...
-            //     _ => Err(Error::<T>::InvalidMessageType)?,
-            // };
-
-            Self::deposit_event(Event::MessageValidated {
-                fid: data.fid,
-                message_type: MessageType::try_from(data.r#type).unwrap_or(MessageType::None),
-            });
+            Self::deposit_event(Event::MessageValidated { message: msg });
             Ok(())
         }
     }
@@ -95,27 +72,9 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         fn validate_message(
             msg: &Message,
-            data: &MessageData,
             data_bytes: Vec<u8>,
+            custody: H160,
         ) -> Result<(), Error<T>> {
-            // Check FID registration
-            let custody = IdRegistry::<T>::try_get(data.fid)
-                .ok()
-                .ok_or(Error::<T>::FidNotRegistered)?;
-
-            // // Validate signer key
-            // let valid_signer = KeyRegistry::<T>::try_get((data.fid, msg.signer.clone()))
-            //     .ok()
-            //     .ok_or(Error::<T>::SignerNotAuthorized)?;
-            // ensure!(valid_signer, Error::<T>::SignerNotAuthorized);
-
-            // // Check storage
-            // let units = StorageRegistry::<T>::try_get(data.fid).unwrap_or(0);
-            // ensure!(
-            //     units >= Self::required_units(data),
-            //     Error::<T>::InsufficientStorage
-            // );
-
             // Verify hash
             let computed = Self::compute_hash(
                 &data_bytes,
@@ -132,13 +91,6 @@ pub mod pallet {
                 &custody,
             )?;
             ensure!(valid, Error::<T>::InvalidSignature);
-
-            // // Check timestamp within 10 minutes
-            // let now = 10; // Replace with actual current time
-            // ensure!(
-            //     data.timestamp <= now + 600 && data.timestamp >= now - 600,
-            //     Error::<T>::InvalidTimestamp
-            // );
 
             Ok(())
         }
@@ -177,28 +129,14 @@ pub mod pallet {
                 _ => Err(Error::<T>::InvalidSignatureScheme),
             }
         }
+    }
 
-        fn process_cast_add(fid: u64, msg: Message) -> DispatchResult {
-            // let data = msg.data.as_ref().ok_or(Error::<T>::InvalidMessageData)?;
-            // let body = if let Some(MessageData_oneof_body::cast_add_body(b)) = &data.body {
-            //     b
-            // } else {
-            //     return Err(Error::<T>::InvalidMessageType.into());
-            // };
-
-            // // CRDT resolution: Check existing casts and apply last-write-wins
-            // let key = (fid, msg.hash.clone());
-            // let existing = Casts::<T>::get(&key);
-            // if existing.map_or(true, |e| data.timestamp > e.timestamp) {
-            //     Casts::<T>::insert(&key, body.clone());
-            // }
-
-            Ok(())
-        }
-
-        fn required_units(data: &MessageData) -> u32 {
-            // Determine storage units required based on message type
-            1 // Simplified for example
-        }
+    fn account_to_eth_address<T: frame_system::Config>(account: &T::AccountId) -> H160 {
+        // Encode the account (usually AccountId32) into a Vec<u8>
+        let encoded = account.encode();
+        // Compute the Keccak256 hash (32 bytes)
+        let hash = keccak_256(&encoded);
+        // Take the last 20 bytes (index 12..32) to form the Ethereum address
+        H160::from_slice(&hash[12..])
     }
 }
