@@ -7,10 +7,9 @@ mod util;
 #[frame_support::pallet]
 pub mod pallet {
     use crate::message::*;
-    use crate::util::*;
     use frame_support::{pallet_prelude::*, Blake2_128Concat};
     use frame_system::pallet_prelude::*;
-    use sp_core::{ed25519, keccak_256, H160};
+    use sp_core::{ed25519, keccak_256, ByteArray, H160};
     use sp_std::vec::Vec;
 
     #[pallet::pallet]
@@ -25,16 +24,16 @@ pub mod pallet {
     #[pallet::storage]
     pub type IdRegistry<T> = StorageMap<_, Blake2_128Concat, u64, H160>;
 
-    #[pallet::storage]
-    pub type KeyRegistry<T> = StorageMap<_, Blake2_128Concat, (u64, RuntimeBoundedVec), bool>;
+    // #[pallet::storage]
+    // pub type KeyRegistry<T> = StorageMap<_, Blake2_128Concat, (u64, RuntimeBoundedVec), bool>;
 
-    #[pallet::storage]
-    pub type StorageRegistry<T> = StorageMap<_, Blake2_128Concat, u64, u32>;
+    // #[pallet::storage]
+    // pub type StorageRegistry<T> = StorageMap<_, Blake2_128Concat, u64, u32>;
 
     // CRDT Storages
-    #[pallet::storage]
-    pub type Casts<T> =
-        StorageMap<_, Blake2_128Concat, (u64, RuntimeBoundedVec), RuntimeBoundedVec>;
+    // #[pallet::storage]
+    // pub type Casts<T> =
+    //     StorageMap<_, Blake2_128Concat, (u64, RuntimeBoundedVec), RuntimeBoundedVec>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -70,7 +69,7 @@ pub mod pallet {
             let data = msg.data.as_ref().ok_or(Error::<T>::InvalidMessageData)?;
 
             // Validate message
-            Self::validate_message(&msg, data)?;
+            Self::validate_message(&msg, data, msg.clone().data_bytes.unwrap())?;
 
             // Process message type
             // match data {
@@ -88,11 +87,15 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        fn validate_message(msg: &Message, data: &MessageData) -> Result<(), Error<T>> {
+        fn validate_message(
+            msg: &Message,
+            data: &MessageData,
+            data_bytes: Vec<u8>,
+        ) -> Result<(), Error<T>> {
             // Check FID registration
-            // let custody = IdRegistry::<T>::try_get(data.fid)
-            //     .ok()
-            //     .ok_or(Error::<T>::FidNotRegistered)?;
+            let custody = IdRegistry::<T>::try_get(data.fid)
+                .ok()
+                .ok_or(Error::<T>::FidNotRegistered)?;
 
             // // Validate signer key
             // let valid_signer = KeyRegistry::<T>::try_get((data.fid, msg.signer.clone()))
@@ -107,36 +110,39 @@ pub mod pallet {
             //     Error::<T>::InsufficientStorage
             // );
 
-            // // Verify hash
-            // let computed = Self::compute_hash(&msg.data_bytes, msg.hash_scheme)?;
-            // ensure!(computed == msg.hash, Error::<T>::InvalidHash);
+            // Verify hash
+            let computed = Self::compute_hash(
+                &data_bytes,
+                HashScheme::from_i32(msg.hash_scheme).unwrap_or(HashScheme::None),
+            )?;
+            ensure!(computed == msg.hash, Error::<T>::InvalidHash);
 
-            // // Verify signature
-            // let valid = Self::verify_signature(
-            //     msg.signature_scheme,
-            //     &msg.signer,
-            //     &msg.hash,
-            //     &msg.signature,
-            //     &custody,
-            // )?;
-            // ensure!(valid, Error::<T>::InvalidSignature);
+            // Verify signature
+            let valid = Self::verify_signature(
+                SignatureScheme::from_i32(msg.signature_scheme).unwrap_or(SignatureScheme::None),
+                &msg.signer,
+                &msg.hash,
+                &msg.signature,
+                &custody,
+            )?;
+            ensure!(valid, Error::<T>::InvalidSignature);
 
             // // Check timestamp within 10 minutes
-            // let now = 10; // Replace with actual current time
-            // ensure!(
-            //     data.timestamp <= now + 600 && data.timestamp >= now - 600,
-            //     Error::<T>::InvalidTimestamp
-            // );
+            let now = 10; // Replace with actual current time
+            ensure!(
+                data.timestamp <= now + 600 && data.timestamp >= now - 600,
+                Error::<T>::InvalidTimestamp
+            );
 
             Ok(())
         }
 
-        // fn compute_hash(data: &[u8], scheme: HashScheme) -> Result<Vec<u8>, Error<T>> {
-        //     match scheme {
-        //         HashScheme::HASH_SCHEME_BLAKE3 => Ok(blake3::hash(data).as_bytes()[..20].to_vec()),
-        //         _ => Err(Error::<T>::InvalidHashScheme),
-        //     }
-        // }
+        fn compute_hash(data: &[u8], scheme: HashScheme) -> Result<Vec<u8>, Error<T>> {
+            match scheme {
+                HashScheme::Blake3 => Ok(blake3::hash(data).as_bytes()[..20].to_vec()),
+                _ => Err(Error::<T>::InvalidHashScheme),
+            }
+        }
 
         fn verify_signature(
             scheme: SignatureScheme,
@@ -145,23 +151,25 @@ pub mod pallet {
             sig: &[u8],
             custody: &H160,
         ) -> Result<bool, Error<T>> {
-            // match scheme {
-            //     SignatureScheme::SIGNATURE_SCHEME_ED25519 => {
-            //         let pub_key = ed25519::Public::from_slice(signer)
-            //             .map_err(|_| Error::<T>::InvalidSignature)?;
-            //         let signature = ed25519::Signature::from_slice(sig)
-            //             .map_err(|_| Error::<T>::InvalidSignature)?;
-            //         Ok(sp_io::crypto::ed25519_verify(&signature, hash, &pub_key))
-            //     }
-            //     SignatureScheme::SIGNATURE_SCHEME_EIP712 => {
-            //         let recovered = sp_io::crypto::secp256k1_ecdsa_recover(sig, hash)
-            //             .map_err(|_| Error::<T>::InvalidSignature)?;
-            //         let addr = H160::from_slice(&keccak_256(&recovered)[12..32]);
-            //         Ok(&addr == custody)
-            //     }
-            //     _ => Err(Error::<T>::InvalidSignatureScheme),
-            // }
-            Ok((true))
+            match scheme {
+                SignatureScheme::Ed25519 => {
+                    let pub_key = ed25519::Public::from_slice(signer)
+                        .map_err(|_| Error::<T>::InvalidSignature)?;
+                    let signature = ed25519::Signature::from_slice(sig)
+                        .map_err(|_| Error::<T>::InvalidSignature)?;
+                    Ok(sp_io::crypto::ed25519_verify(&signature, hash, &pub_key))
+                }
+                SignatureScheme::Eip712 => {
+                    let recovered = sp_io::crypto::secp256k1_ecdsa_recover(
+                        sig.try_into().unwrap(),
+                        hash.try_into().unwrap(),
+                    )
+                    .map_err(|_| Error::<T>::InvalidSignature)?;
+                    let addr = H160::from_slice(&keccak_256(&recovered)[12..32]);
+                    Ok(&addr == custody)
+                }
+                _ => Err(Error::<T>::InvalidSignatureScheme),
+            }
         }
 
         fn process_cast_add(fid: u64, msg: Message) -> DispatchResult {
