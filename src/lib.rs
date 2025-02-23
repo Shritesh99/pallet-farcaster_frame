@@ -38,12 +38,6 @@ pub mod pallet {
         InvalidProtobuf,
         InvalidHash,
         InvalidSignature,
-        SignerNotAuthorized,
-        FidNotRegistered,
-        InsufficientStorage,
-        InvalidTimestamp,
-        InvalidMessageType,
-        InvalidMessageData,
         InvalidHashScheme,
         InvalidSignatureScheme,
     }
@@ -56,7 +50,6 @@ pub mod pallet {
             let sender = ensure_signed(origin)?;
 
             let msg = Message::decode(&mut &*raw).map_err(|_| Error::<T>::InvalidProtobuf)?;
-            let data = msg.data.as_ref().ok_or(Error::<T>::InvalidMessageData)?;
             // Validate message
             Self::validate_message(
                 &msg,
