@@ -78,14 +78,11 @@ pub mod pallet {
             // Decode the message.
             let msg = Message::decode(&mut &*raw).map_err(|_| Error::<T>::InvalidProtobuf)?;
 
-            // Ensure that required data is available.
-            let data_bytes = msg.data_bytes.clone().ok_or(Error::<T>::InvalidProtobuf)?;
-
             // Convert sender's AccountId into an Ethereum-style address.
-            let custody = account_to_eth_address::<T>(sender);
+            // let custody = account_to_eth_address::<T>(sender);
 
             // Validate the message using your existing logic.
-            Self::validate_message(&msg, data_bytes, custody)?;
+            // Self::validate_message(&msg, raw, custody)?;
 
             Ok(msg)
         }

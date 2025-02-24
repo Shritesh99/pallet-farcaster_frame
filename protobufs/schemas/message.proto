@@ -1,5 +1,4 @@
 syntax = "proto3";
-import "username_proof.proto";
 
 package message;
 /**
@@ -201,4 +200,19 @@ message FrameActionBody {
   bytes state = 5; // Serialized frame state value
   bytes transaction_id = 6; // Chain-specific transaction ID for tx actions
   bytes address = 7; // Chain-specific address for tx actions
+}
+
+enum UserNameType {
+  USERNAME_TYPE_NONE = 0;
+  USERNAME_TYPE_FNAME = 1;
+  USERNAME_TYPE_ENS_L1 = 2;
+}
+
+message UserNameProof {
+  uint64 timestamp = 1;
+  bytes name = 2;
+  bytes owner = 3;
+  bytes signature = 4;
+  uint64 fid = 5;
+  UserNameType type = 6;
 }
