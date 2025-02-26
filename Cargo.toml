@@ -30,6 +30,10 @@ sp-io = { version = "39.0.0", default-features = false }
 prost = "0.13"
 prost-types = "0.13"
 
+[dev-dependencies]
+base64 = "0.22.1"
+hex-literal = "0.4.1"
+
 [build-dependencies]
 prost-build = "0.13"
 
