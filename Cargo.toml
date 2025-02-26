@@ -1,6 +1,6 @@
 [package]
 name = "pallet-farcaster_frame"
-version = "0.0.1"
+version = "0.0.2"
 description = "Farcaster frame pallet to parse messages from farcaster frames."
 license = "MIT-0"
 license-file = "LICENSE"
@@ -27,17 +27,8 @@ sp-core = { version = "35.0.0", default-features = false }
 sp-std = { version = "14.0.0", default-features = false }
 sp-io = { version = "39.0.0", default-features = false }
 
-blake3 = "1.5.0"
-ed25519-dalek = { version = "2.0.0", features = ["rand_core"] }
-rand = "0.8.5"
-hex = "0.4.3"
-
 prost = "0.13"
 prost-types = "0.13"
-reqwest = "0.11"
-tokio = { version = "1.43.0", features = ["full"] }
-base64 = "0.22.1"
-hex-literal = "0.4.1"
 
 [build-dependencies]
 prost-build = "0.13"

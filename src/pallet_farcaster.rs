@@ -11,12 +11,8 @@ pub trait PalletFarcasterInterface<AccountId> {
     ///
     /// # Arguments
     /// * `raw` - The raw byte vector containing the message.
-    /// * `sender` - The account ID of the sender submitting the message.
     ///
     /// # Returns
     /// A result containing the parsed and validated `Message` or an error of type `Self::Error`.
-    fn submit_message_from_runtime(
-        raw: Vec<u8>,
-        sender: &AccountId,
-    ) -> Result<Message, Self::Error>;
+    fn submit_message_from_runtime(raw: Vec<u8>) -> Result<Message, Self::Error>;
 }
