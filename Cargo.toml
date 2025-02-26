@@ -1,9 +1,12 @@
 [package]
 name = "pallet-farcaster_frame"
+version = "0.0.1"
 description = "Farcaster frame pallet to parse messages from farcaster frames."
-version = "0.0.0"
 license = "MIT-0"
+license-file = "LICENSE"
+homepage = "https://github.com/Shritesh99/pallet-farcaster_frame"
 repository = "https://github.com/Shritesh99/pallet-farcaster_frame/"
+readme = "README.md"
 edition = "2021"
 
 [package.metadata.docs.rs]
@@ -17,7 +20,7 @@ parity-scale-codec = { version = "3.7.4", default-features = false, features = [
   "derive", "max-encoded-len"
 ] }
 scale-info = { version = "2.11.1", default-features = false, features = [
-  "derive",
+  "derive"
 ] }
 sp-runtime = { version = "40.1.0", default-features = false }
 sp-core = { version = "35.0.0", default-features = false }
@@ -25,7 +28,7 @@ sp-std = { version = "14.0.0", default-features = false }
 sp-io = { version = "39.0.0", default-features = false }
 
 blake3 = "1.5.0"
-ed25519-dalek = {version = "2.0.0", features = ["rand_core"]}
+ed25519-dalek = { version = "2.0.0", features = ["rand_core"] }
 rand = "0.8.5"
 hex = "0.4.3"
 
