@@ -1,4 +1,5 @@
-use crate::{message::*, mock::*, Event};
+use crate::message::*;
+use crate::pallet_farcaster::*;
 use base64::prelude::*;
 use frame_support::assert_ok;
 use hex_literal::hex;
@@ -63,28 +64,13 @@ fn generate_message() -> Message {
 
 #[test]
 fn submit_message_should_work() {
-    new_test_ext().execute_with(|| {
-        // Create a dummy message with content "Hello, Farcaster!"
-        let message = generate_message();
-        // // Encode the message to a raw vector.
-        let raw = message.encode();
+    // Create a dummy message with content "Hello, Farcaster!"
+    let message = generate_message();
+    // // Encode the message to a raw vector.
+    let raw = message.encode();
 
-        System::set_block_number(1);
-
-        // Call the submit_message extrinsic with a signed origin.
-        assert_ok!(PalletFarcaster::submit_message(
-            RuntimeOrigin::signed(1),
-            raw.clone()
-        ));
-
-        // Verify that the MessageValidated event was emitted with the expected message.
-        System::assert_last_event(
-            Event::MessageValidated {
-                message: message.clone(),
-            }
-            .into(),
-        );
-    });
+    // Call the submit_message extrinsic with a signed origin.
+    assert_ok!(parse_message(raw.clone()));
 }
 // {
 //   "data": {

@@ -28,29 +28,13 @@ cargo add  pallet-farcaster_frame
 2. Import the interface
 
 ```
-use crate::pallet_farcaster::PalletFarcasterInterface;
+use pallet_farcaster_frame::pallet_farcaster;
 ```
 
-3. Impl the trait
+3. Parse the message
 
 ```rust
-impl<T: Config> PalletFarcasterInterface<T::AccountId> for Pallet<T> {
-     type Error = Error<T>;
-     type Message = Message;
-
-     fn submit_message_from_runtime(
-          raw: Vec<u8>,
-          sender: &T::AccountId,
-     ) -> Result<Message, Self::Error> {
-          Self::process_message(raw, sender)
-     }
-}
-```
-
-4. Parse the message
-
-```rust
-let msg: Message = <Self as PalletFarcasterInterface<T::AccountId>>::submit_message_from_runtime(raw, &sender)?;
+pallet_farcaster::parse_message(Vec::new())
 ```
 
 ### Building locally

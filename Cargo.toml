@@ -2,7 +2,6 @@
 name = "pallet-farcaster_frame"
 version = "0.0.2"
 description = "Farcaster frame pallet to parse messages from farcaster frames."
-license = "MIT-0"
 license-file = "LICENSE"
 homepage = "https://github.com/Shritesh99/pallet-farcaster_frame"
 repository = "https://github.com/Shritesh99/pallet-farcaster_frame/"
@@ -22,13 +21,12 @@ parity-scale-codec = { version = "3.7.4", default-features = false, features = [
 scale-info = { version = "2.11.1", default-features = false, features = [
   "derive"
 ] }
-sp-runtime = { version = "40.1.0", default-features = false }
-sp-core = { version = "35.0.0", default-features = false }
+
 sp-std = { version = "14.0.0", default-features = false }
 sp-io = { version = "39.0.0", default-features = false }
 
-prost = "0.13"
-prost-types = "0.13"
+prost = { version = "0.13", default-features = false, features = ["derive"] }
+prost-types = { version = "0.13", default-features = false }
 
 [dev-dependencies]
 base64 = "0.22.1"
@@ -43,11 +41,8 @@ std = [
   "frame-support/std",
   "frame-system/std",
   "parity-scale-codec/std",
-  "scale-info/std",
-  "sp-runtime/std",
 ]
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
-	"sp-runtime/try-runtime",
 ]
