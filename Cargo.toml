@@ -1,6 +1,6 @@
 [package]
 name = "pallet-farcaster_frame"
-version = "0.0.3"
+version = "0.0.4"
 description = "Farcaster frame pallet to parse messages from farcaster frames."
 license-file = "LICENSE"
 homepage = "https://github.com/Shritesh99/pallet-farcaster_frame"
@@ -23,7 +23,6 @@ scale-info = { version = "2.11.1", default-features = false, features = [
 ] }
 
 sp-std = { version = "14.0.0", default-features = false }
-sp-io = { version = "39.0.0", default-features = false }
 
 prost = { version = "0.13", default-features = false, features = ["derive"] }
 prost-types = { version = "0.13", default-features = false }
