@@ -1,6 +1,6 @@
 [package]
 name = "pallet-farcaster_frame"
-version = "0.0.2"
+version = "0.0.3"
 description = "Farcaster frame pallet to parse messages from farcaster frames."
 license-file = "LICENSE"
 homepage = "https://github.com/Shritesh99/pallet-farcaster_frame"
