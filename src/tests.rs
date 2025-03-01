@@ -1,8 +1,8 @@
 use crate::message::*;
-use crate::pallet_farcaster::*;
+use crate::*;
 use base64::prelude::*;
-use frame_support::assert_ok;
 use hex_literal::hex;
+use parity_scale_codec::Encode;
 
 // Convert an ISO8601 time to a u32 timestamp (in seconds).
 // Here we hardcode the computed value for "1973-02-28T09:13:52Z".
@@ -63,48 +63,30 @@ fn generate_message() -> Message {
 }
 
 #[test]
-fn submit_message_should_work() {
-    // Create a dummy message with content "Hello, Farcaster!"
+fn message_parsing_should_work() {
     let message = generate_message();
-    // // Encode the message to a raw vector.
     let raw = message.encode();
-
-    // Call the submit_message extrinsic with a signed origin.
-    assert_ok!(parse_message(raw.clone()));
+    let msg = parse_message(raw.clone());
+    assert!(msg.is_ok(), "Expected parse_message to succeed");
+    assert_eq!(msg.unwrap(), message);
 }
-// {
-//   "data": {
-//     "FarcasterValidateFrameMessage": {
-//       "message": {
-//         "data": {
-//           "fid": 289309,
-//           "frameActionBody": {
-//             "buttonIndex": 1,
-//             "castId": {
-//               "fid": 289309,
-//               "hash": "0x0000000000000000000000000000000000000001"
-//             },
-//             "inputText": "",
-//             "state": "",
-//             "address": "",
-//             "inputTextDecoded": "",
-//             "stateDecoded": null,
-//             "transactionHash": "0x",
-//             "transactionId": "",
-//             "url": "aHR0cHM6Ly9wZWxpY2FuLWZvbmQtZGlzdGluY3RseS5uZ3Jvay1mcmVlLmFwcC9vZw==",
-//             "urlDecoded": "https://pelican-fond-distinctly.ngrok-free.app/og"
-//           },
-//           "network": "FARCASTER_NETWORK_MAINNET",
-//           "time": "1973-02-28T09:13:52Z",
-//           "type": "MESSAGE_TYPE_FRAME_ACTION"
-//         },
-//         "hash": "0x6357261fa893e4be85f78178babaca876f9a1fac",
-//         "hashScheme": "HASH_SCHEME_BLAKE3",
-//         "signature": "0e1kmWQBg3dkGnhjjwwZ08NGwesaR+hWwPzYfT/HL/mBcvk5/Bj/3RavdGFEJ55t67P0kT9JHGnSL2cD5VRRCg==",
-//         "signatureScheme": "SIGNATURE_SCHEME_ED25519",
-//         "signer": "0x0295183aaa021cad737db7ddbc075964496ece1c0bcc1009bdae6d1799c83cd4"
-//       }
-//     }
-//   }
-// }
-// https://app.airstack.xyz/query/A8jvLznU9P?_gl=1*nk2u9z*_ga*MTUyNzExOTYzNC4xNzQwNDE3NzYy*_ga_6PP294SC61*MTc0MDQxNzc2Mi4xLjEuMTc0MDQxNzg2MS4wLjAuMA..
+
+#[test]
+fn message_parsing_should_not_work() {
+    let msg = parse_message(sp_std::vec::Vec::new());
+    assert!(
+        msg.is_err(),
+        "Expected parse_message to return an error on invalid input"
+    );
+    assert_eq!(msg, Err(Error::InvalidProtobuf));
+}
+
+#[test]
+fn message_encoding_should_work() {
+    let message = generate_message();
+
+    let raw = encode_message(&message);
+
+    assert!(raw.is_ok(), "Expected encode_message to succeed");
+    assert_eq!(raw.unwrap(), message.encode());
+}

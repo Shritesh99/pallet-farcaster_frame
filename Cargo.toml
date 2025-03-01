@@ -1,6 +1,6 @@
 [package]
 name = "pallet-farcaster_frame"
-version = "0.0.4"
+version = "0.0.5"
 description = "Farcaster frame pallet to parse messages from farcaster frames."
 license-file = "LICENSE"
 homepage = "https://github.com/Shritesh99/pallet-farcaster_frame"
@@ -13,8 +13,6 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 # frame deps
-frame-support = { version = "39.0.0", default-features = false }
-frame-system = { version = "39.0.0", default-features = false }
 parity-scale-codec = { version = "3.7.4", default-features = false, features = [
   "derive", "max-encoded-len"
 ] }
@@ -36,12 +34,4 @@ prost-build = "0.13"
 
 [features]
 default = ["std"]
-std = [
-  "frame-support/std",
-  "frame-system/std",
-  "parity-scale-codec/std",
-]
-try-runtime = [
-	"frame-support/try-runtime",
-	"frame-system/try-runtime",
-]
+std = []

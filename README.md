@@ -4,6 +4,8 @@
 
 This repository contains a custom Substrate pallet designed for integrating Farcaster frames into Polkadot/Substrate-based blockchains. The pallet decodes Farcaster messages, allowing developers to incorporate social media interactions into blockchain applications. As a demonstration, the pallet is integrated with a simple NFT minting functionality, enabling on-chain asset creation driven by Farcaster data.
 
+Example implmentation in pallet can be found here at [lib.rs](https://github.com/Shritesh99/polkadot-farcaster-demo-parachain/blob/master/pallets/template/src/lib.rs).
+
 ## Features
 
 -    **Farcaster Message Decoding**: Decodes Farcaster frames submitted as raw messages.
@@ -22,19 +24,36 @@ This repository contains a custom Substrate pallet designed for integrating Farc
 1. Add to your pallet dependencies
 
 ```
-cargo add  pallet-farcaster_frame
+cargo add pallet-farcaster_frame
 ```
 
-2. Import the interface
+2. Import the module
 
 ```
-use pallet_farcaster_frame::pallet_farcaster;
+use pallet_farcaster_frame::{parse_message, Error};
 ```
 
-3. Parse the message
+### Usage
+
+1. Parse the farcaster message
 
 ```rust
-pallet_farcaster::parse_message(Vec::new())
+use pallet_farcaster_frame::{parse_message, Error};
+use sp_std::vec;
+
+let bytes = vec![];
+let result: Result<Message, Error> = parse_message(bytes);
+```
+
+2. Encode the farcaster message
+
+```rust
+use pallet_farcaster_frame::{encode_message, message::Message};
+let msg = Message {
+...
+}
+let encoded = encode_message(&msg);
+assert!(encoded.is_ok());
 ```
 
 ### Building locally
@@ -116,7 +135,7 @@ This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE
 
 ## Contact
 
-For questions, support, or collaboration inquiries, please contact [Your Name] at [shritesh.sj@gmail.com].
+For questions, support, or collaboration inquiries, please contact Shritesh at [shritesh.sj@gmail.com].
 
 ---
 
