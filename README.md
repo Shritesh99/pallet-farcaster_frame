@@ -8,8 +8,7 @@ Example implmentation in pallet can be found here at [lib.rs](https://github.com
 
 ## Features
 
--    **Farcaster Message Decoding**: Decodes Farcaster frames submitted as raw messages.
--    **Event Emission**: Emits events such as `MessageValidated` upon successful processing, enabling real-time feedback and off-chain indexing.
+-    **Farcaster Message Encoding & Decoding**: Decodes Farcaster frames submitted as raw messages.
 
 ## Builoding locally
 
@@ -79,7 +78,8 @@ assert!(encoded.is_ok());
 
 ## Project Structure
 
--    **src/lib.rs**: Main pallet implementation including extrinsics, message processing, and integration logic.
+-    **src/lib.rs**: Main library implementation including message processing logic.
+-    **src/message.rs**: Generated protoc message impl from [prost](https://github.com/tokio-rs/prost).
 -    **src/tests.rs**: Unit tests to verify the functionality of the pallet.
 -    **Cargo.toml**: Configuration file for Rust package management.
 -    Additional configuration and documentation files.
