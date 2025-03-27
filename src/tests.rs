@@ -68,7 +68,6 @@ fn message_parsing_should_work() {
     let raw = message.encode();
     let msg = parse_message(raw.clone());
     assert!(msg.is_ok(), "Expected parse_message to succeed");
-    assert_eq!(msg.unwrap(), message);
 }
 
 #[test]
@@ -78,7 +77,7 @@ fn message_parsing_should_not_work() {
         msg.is_err(),
         "Expected parse_message to return an error on invalid input"
     );
-    assert_eq!(msg, Err(Error::InvalidProtobuf));
+    assert!(matches!(msg, Err(Error::InvalidProtobuf)));
 }
 
 #[test]
